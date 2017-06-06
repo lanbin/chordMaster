@@ -4,6 +4,10 @@
     <div id="stave"
       ref="stave"></div>
     <div>{{chordNote.join(" , ")}}</div>
+    <select v-model="clef">
+      <option value="treble">treble</option>
+      <option value="bass">bass</option>
+    </select>
     <button id="next"
       @click="change">change</button>
     <button id="next"
@@ -32,8 +36,16 @@ export default {
       staveContext: null,
       stave: null,
       result: {},
-      clef: 'bass',
+      clef: 'treble',
       chordNote: []
+    }
+  },
+  watch: {
+    clef(newVal, oldVal) {
+      if(newVal !== oldVal) {
+        this.cleanStave()
+        this.createStave()
+      }
     }
   },
   mounted() {
@@ -110,7 +122,7 @@ export default {
       if(this.result) {
         let chord = this.result.chord
         chord.forEach((item, index) => {
-          MIDI.noteOn(CHANNEL, item, VELOCITY, 0.5 * index)
+          MIDI.noteOn(CHANNEL, item, VELOCITY, .5 * index)
         })
       }
     }

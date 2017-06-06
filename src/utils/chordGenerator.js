@@ -79,7 +79,8 @@ function generator() {
 
   // 转成音名
   let notesNameArr = chord.map((value) => {
-    return (keyNoteMap[value - KeyOffset] + "/" + Math.floor(value / EqualTemperament))
+    var offset = value - KeyOffset
+    return (keyNoteMap[offset] + "/" + Math.floor(value / EqualTemperament))
   })
 
   return {
