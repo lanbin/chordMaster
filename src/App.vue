@@ -1,6 +1,5 @@
 <template>
   <div id="app">
-    <img src="./assets/ChordMaster.png">
     <router-view></router-view>
   </div>
 </template>

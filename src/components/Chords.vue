@@ -1,15 +1,22 @@
 <template>
   <div class="chord">
+    <h1>What the given Chord is?</h1>
     <div id="stave"
       ref="stave"></div>
+    <div>{{chordNote.join(" , ")}}</div>
     <button id="next"
       @click="change">change</button>
+    <button id="next"
+      @click="play">play the chord</button>
+    <button id="next"
+      @click="arpeggio">play the chord arpeggio</button>
   </div>
 </template>
 
 <script>
 import MIDI from 'midi.js'
 import Vex from 'vexflow'
+import ChordGenerator from '../utils/chordGenerator.js'
 
 const VF = Vex.Flow
 const DELAY = 0
@@ -23,23 +30,25 @@ export default {
   data() {
     return {
       staveContext: null,
-      stave: null
+      stave: null,
+      result: {},
+      clef: 'bass',
+      chordNote: []
     }
   },
   mounted() {
+    var self = this
     MIDI.loadPlugin({
       soundfontUrl: '/',
       instrument: 'acoustic_grand_piano', // or the instrument code 1 (aka the default)
       onsuccess() {
-        var delay = 0; // play one note every quarter second
-      var note = 50; // the MIDI note
-      var velocity = 127; // how hard the note hits
-      // play the note
-      MIDI.setVolume(0, 127);
-      MIDI.noteOn(0, note, velocity, delay);
+         self.createStave()
       }
     })
-    this.createStave()
+    ChordGenerator.settings({
+      notesNum:3,
+      clef: this.clef
+    })
   },
   methods: {
     createStave() {
@@ -47,7 +56,7 @@ export default {
         var div = this.$refs.stave
         var renderor = new VF.Renderer(div, VF.Renderer.Backends.SVG)
 
-        renderor.resize(200, 100)
+        renderor.resize(200, 150)
         this.staveContext = renderor.getContext()
       }
 
@@ -55,7 +64,7 @@ export default {
 
       this.stave = new VF.Stave(0, 0, 200)
 
-      this.stave.addClef('treble')
+      this.stave.addClef(this.clef)
       this.stave.setContext(this.staveContext).draw()
     },
     cleanStave(){
@@ -65,9 +74,21 @@ export default {
       this.cleanStave()
       this.createStave()
 
-      var notes = [
-        // A C-Major chord.
-        new VF.StaveNote({clef: 'treble', keys: [['c', 'd', 'e'][parseInt(Math.random() * 10) % 3] + '/4', ['f', 'g', 'a'][parseInt(Math.random() * 10) % 3] + '/4', 'g/4'], duration: 'h' })
+      this.result = ChordGenerator.generator()
+
+      let keys = this.result.keys,
+      chordStaveNote = new VF.StaveNote({clef: this.result.clef, keys: keys, duration: 'h' })
+
+      this.chordNote = keys
+
+      keys.forEach((item, index) => {
+        if(item.length > 3) {
+          chordStaveNote = chordStaveNote.addAccidental(index, new VF.Accidental(item[1]))
+        }
+      })
+
+      let notes = [
+        chordStaveNote
       ]
 
       // Create a voice in 4/4 and add above notes
@@ -75,10 +96,23 @@ export default {
       voice.addTickables(notes)
 
       // Format and justify the notes to 400 pixels.
-      var formatter = new VF.Formatter().joinVoices([voice]).format([voice], 100)
+      var formatter = new VF.Formatter().joinVoices([voice]).format([voice], 400)
 
       // Render voice
       voice.draw(this.staveContext, this.stave)
+    },
+    play(){
+      if(this.result) {
+        MIDI.chordOn(CHANNEL, this.result.chord, VELOCITY, DELAY)
+      }
+    },
+    arpeggio() {
+      if(this.result) {
+        let chord = this.result.chord
+        chord.forEach((item, index) => {
+          MIDI.noteOn(CHANNEL, item, VELOCITY, 0.5 * index)
+        })
+      }
     }
   }
 }
@@ -87,7 +121,9 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less">
 #stave {
-  transform: scale(2)
+  transform: scale(2);
+  transform-origin: top;
+  margin-bottom: 100px;
 }
 
 #next {

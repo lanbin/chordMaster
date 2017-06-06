@@ -1,4 +1,4 @@
-# chordMaster
+# ChordMaster
 
 > Learn Chords based on piano
 
